@@ -72,21 +72,37 @@ class Visualizer:
     # whether input image has been preprocessed or not
     RAW_INPUT_FLAG = False
 
-    def __init__(self, model, intensity_range, regularization, input_shape,
-                 init_cost, steps, mini_batch, lr, num_classes,
+    def __init__(self,
+                 model,
+                 intensity_range,
+                 regularization,
+                 input_shape,
+                 init_cost,
+                 steps,
+                 mini_batch,
+                 lr,
+                 num_classes,
                  upsample_size=UPSAMPLE_SIZE,
                  attack_succ_threshold=ATTACK_SUCC_THRESHOLD,
-                 patience=PATIENCE, cost_multiplier=COST_MULTIPLIER,
+                 patience=PATIENCE,
+                 cost_multiplier=COST_MULTIPLIER,
                  reset_cost_to_zero=RESET_COST_TO_ZERO,
-                 mask_min=MASK_MIN, mask_max=MASK_MAX,
-                 color_min=COLOR_MIN, color_max=COLOR_MAX, img_color=IMG_COLOR,
-                 shuffle=SHUFFLE, batch_size=BATCH_SIZE, verbose=VERBOSE,
-                 return_logs=RETURN_LOGS, save_last=SAVE_LAST,
+                 mask_min=MASK_MIN,
+                 mask_max=MASK_MAX,
+                 color_min=COLOR_MIN,
+                 color_max=COLOR_MAX,
+                 img_color=IMG_COLOR,
+                 shuffle=SHUFFLE,
+                 batch_size=BATCH_SIZE,
+                 verbose=VERBOSE,
+                 return_logs=RETURN_LOGS,
+                 save_last=SAVE_LAST,
                  epsilon=EPSILON,
                  early_stop=EARLY_STOP,
                  early_stop_threshold=EARLY_STOP_THRESHOLD,
                  early_stop_patience=EARLY_STOP_PATIENCE,
-                 save_tmp=SAVE_TMP, tmp_dir=TMP_DIR,
+                 save_tmp=SAVE_TMP,
+                 tmp_dir=TMP_DIR,
                  raw_input_flag=RAW_INPUT_FLAG):
 
         assert intensity_range in {'imagenet', 'inception', 'mnist', 'raw'}
@@ -105,7 +121,7 @@ class Visualizer:
         self.attack_succ_threshold = attack_succ_threshold
         self.patience = patience
         self.cost_multiplier_up = cost_multiplier
-        self.cost_multiplier_down = cost_multiplier ** 1.5
+        self.cost_multiplier_down = cost_multiplier**1.5
         self.reset_cost_to_zero = reset_cost_to_zero
         self.mask_min = mask_min
         self.mask_max = mask_max
@@ -125,8 +141,8 @@ class Visualizer:
         self.tmp_dir = tmp_dir
         self.raw_input_flag = raw_input_flag
 
-        mask_size = np.ceil(np.array(input_shape[0:2], dtype=float) /
-                            upsample_size)
+        mask_size = np.ceil(
+            np.array(input_shape[0:2], dtype=float) / upsample_size)
         mask_size = mask_size.astype(int)
         self.mask_size = mask_size
         mask = np.zeros(self.mask_size)
@@ -139,22 +155,19 @@ class Visualizer:
         # prepare mask related tensors
         self.mask_tanh_tensor = K.variable(mask_tanh)
         mask_tensor_unrepeat = (K.tanh(self.mask_tanh_tensor) /
-                                (2 - self.epsilon) +
-                                0.5)
-        mask_tensor_unexpand = K.repeat_elements(
-            mask_tensor_unrepeat,
-            rep=self.img_color,
-            axis=2)
+                                (2 - self.epsilon) + 0.5)
+        mask_tensor_unexpand = K.repeat_elements(mask_tensor_unrepeat,
+                                                 rep=self.img_color,
+                                                 axis=2)
         self.mask_tensor = K.expand_dims(mask_tensor_unexpand, axis=0)
-        upsample_layer = UpSampling2D(
-            size=(self.upsample_size, self.upsample_size))
+        upsample_layer = UpSampling2D(size=(self.upsample_size,
+                                            self.upsample_size))
         mask_upsample_tensor_uncrop = upsample_layer(self.mask_tensor)
         uncrop_shape = K.int_shape(mask_upsample_tensor_uncrop)[1:]
         cropping_layer = Cropping2D(
             cropping=((0, uncrop_shape[0] - self.input_shape[0]),
                       (0, uncrop_shape[1] - self.input_shape[1])))
-        self.mask_upsample_tensor = cropping_layer(
-            mask_upsample_tensor_uncrop)
+        self.mask_upsample_tensor = cropping_layer(mask_upsample_tensor_uncrop)
         reverse_mask_tensor = (K.ones_like(self.mask_upsample_tensor) -
                                self.mask_upsample_tensor)
 
@@ -206,9 +219,8 @@ class Visualizer:
 
         # prepare pattern related tensors
         self.pattern_tanh_tensor = K.variable(pattern_tanh)
-        self.pattern_raw_tensor = (
-            (K.tanh(self.pattern_tanh_tensor) / (2 - self.epsilon) + 0.5) *
-            255.0)
+        self.pattern_raw_tensor = ((K.tanh(self.pattern_tanh_tensor) /
+                                    (2 - self.epsilon) + 0.5) * 255.0)
 
         # prepare input image related tensors
         # ignore clip operation here
@@ -240,8 +252,8 @@ class Visualizer:
             self.loss_reg = (K.sum(K.abs(self.mask_upsample_tensor)) /
                              self.img_color)
         elif self.regularization is 'l2':
-            self.loss_reg = K.sqrt(K.sum(K.square(self.mask_upsample_tensor)) /
-                                   self.img_color)
+            self.loss_reg = K.sqrt(
+                K.sum(K.square(self.mask_upsample_tensor)) / self.img_color)
 
         cost = self.init_cost
         self.cost_tensor = K.variable(cost)
@@ -302,17 +314,16 @@ class Visualizer:
 
         cur_mask = K.eval(self.mask_upsample_tensor)
         cur_mask = cur_mask[0, ..., 0]
-        img_filename = (
-            '%s/%s' % (self.tmp_dir, 'tmp_mask_step_%d.png' % step))
-        utils_backdoor.dump_image(np.expand_dims(cur_mask, axis=2) * 255,
-                                  img_filename,
-                                  'png')
+        img_filename = ('%s/%s' %
+                        (self.tmp_dir, 'tmp_mask_step_%d.png' % step))
+        utils_backdoor.dump_image(
+            np.expand_dims(cur_mask, axis=2) * 255, img_filename, 'png')
 
         cur_fusion = K.eval(self.mask_upsample_tensor *
                             self.pattern_raw_tensor)
         cur_fusion = cur_fusion[0, ...]
-        img_filename = (
-            '%s/%s' % (self.tmp_dir, 'tmp_fusion_step_%d.png' % step))
+        img_filename = ('%s/%s' %
+                        (self.tmp_dir, 'tmp_fusion_step_%d.png' % step))
         utils_backdoor.dump_image(cur_fusion, img_filename, 'png')
 
         pass
@@ -353,15 +364,13 @@ class Visualizer:
             loss_reg_list = []
             loss_list = []
             loss_acc_list = []
-            for idx in range(self.mini_batch):
+            for idx in range(int(self.mini_batch)):
                 X_batch, _ = gen.next()
                 if X_batch.shape[0] != Y_target.shape[0]:
                     Y_target = to_categorical([y_target] * X_batch.shape[0],
                                               self.num_classes)
-                (loss_ce_value,
-                    loss_reg_value,
-                    loss_value,
-                    loss_acc_value) = self.train([X_batch, Y_target])
+                (loss_ce_value, loss_reg_value, loss_value,
+                 loss_acc_value) = self.train([X_batch, Y_target])
                 loss_ce_list.extend(list(loss_ce_value.flatten()))
                 loss_reg_list.extend(list(loss_reg_value.flatten()))
                 loss_list.extend(list(loss_value.flatten()))
@@ -387,14 +396,14 @@ class Visualizer:
             # verbose
             if self.verbose != 0:
                 if self.verbose == 2 or step % (self.steps // 10) == 0:
-                    print('step: %3d, cost: %.2E, attack: %.3f, loss: %f, ce: %f, reg: %f, reg_best: %f' %
-                          (step, Decimal(self.cost), avg_loss_acc, avg_loss,
+                    print(
+                        'step: %3d, cost: %.2E, attack: %.3f, loss: %f, ce: %f, reg: %f, reg_best: %f'
+                        % (step, Decimal(self.cost), avg_loss_acc, avg_loss,
                            avg_loss_ce, avg_loss_reg, reg_best))
 
             # save log
-            logs.append((step,
-                         avg_loss_ce, avg_loss_reg, avg_loss, avg_loss_acc,
-                         reg_best, self.cost))
+            logs.append((step, avg_loss_ce, avg_loss_reg, avg_loss,
+                         avg_loss_acc, reg_best, self.cost))
 
             # check early stop
             if self.early_stop:
@@ -406,9 +415,8 @@ class Visualizer:
                         early_stop_counter = 0
                 early_stop_reg_best = min(reg_best, early_stop_reg_best)
 
-                if (cost_down_flag and
-                        cost_up_flag and
-                        early_stop_counter >= self.early_stop_patience):
+                if (cost_down_flag and cost_up_flag
+                        and early_stop_counter >= self.early_stop_patience):
                     print('early stop')
                     break
 

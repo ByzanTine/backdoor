@@ -21,7 +21,6 @@ from visualizer import Visualizer
 
 import utils_backdoor
 
-
 ##############################
 #        PARAMETERS          #
 ##############################
@@ -105,8 +104,7 @@ def load_dataset(data_file=('%s/%s' % (DATA_DIR, DATA_FILE))):
 def build_data_loader(X, Y):
 
     datagen = ImageDataGenerator()
-    generator = datagen.flow(
-        X, Y, batch_size=BATCH_SIZE)
+    generator = datagen.flow(X, Y, batch_size=BATCH_SIZE)
 
     return generator
 
@@ -148,22 +146,18 @@ def save_pattern(pattern, mask, y_target):
     if not os.path.exists(RESULT_DIR):
         os.mkdir(RESULT_DIR)
 
-    img_filename = (
-        '%s/%s' % (RESULT_DIR,
-                   IMG_FILENAME_TEMPLATE % ('pattern', y_target)))
+    img_filename = ('%s/%s' % (RESULT_DIR, IMG_FILENAME_TEMPLATE %
+                               ('pattern', y_target)))
     utils_backdoor.dump_image(pattern, img_filename, 'png')
 
-    img_filename = (
-        '%s/%s' % (RESULT_DIR,
-                   IMG_FILENAME_TEMPLATE % ('mask', y_target)))
-    utils_backdoor.dump_image(np.expand_dims(mask, axis=2) * 255,
-                              img_filename,
-                              'png')
+    img_filename = ('%s/%s' % (RESULT_DIR, IMG_FILENAME_TEMPLATE %
+                               ('mask', y_target)))
+    utils_backdoor.dump_image(
+        np.expand_dims(mask, axis=2) * 255, img_filename, 'png')
 
     fusion = np.multiply(pattern, np.expand_dims(mask, axis=2))
-    img_filename = (
-        '%s/%s' % (RESULT_DIR,
-                   IMG_FILENAME_TEMPLATE % ('fusion', y_target)))
+    img_filename = ('%s/%s' % (RESULT_DIR, IMG_FILENAME_TEMPLATE %
+                               ('fusion', y_target)))
     utils_backdoor.dump_image(fusion, img_filename, 'png')
 
     pass
@@ -181,32 +175,41 @@ def gtsrb_visualize_label_scan_bottom_right_white_4():
     model = load_model(model_file)
 
     # initialize visualizer
-    visualizer = Visualizer(
-        model, intensity_range=INTENSITY_RANGE, regularization=REGULARIZATION,
-        input_shape=INPUT_SHAPE,
-        init_cost=INIT_COST, steps=STEPS, lr=LR, num_classes=NUM_CLASSES,
-        mini_batch=MINI_BATCH,
-        upsample_size=UPSAMPLE_SIZE,
-        attack_succ_threshold=ATTACK_SUCC_THRESHOLD,
-        patience=PATIENCE, cost_multiplier=COST_MULTIPLIER,
-        img_color=IMG_COLOR, batch_size=BATCH_SIZE, verbose=2,
-        save_last=SAVE_LAST,
-        early_stop=EARLY_STOP, early_stop_threshold=EARLY_STOP_THRESHOLD,
-        early_stop_patience=EARLY_STOP_PATIENCE)
+    visualizer = Visualizer(model,
+                            intensity_range=INTENSITY_RANGE,
+                            regularization=REGULARIZATION,
+                            input_shape=INPUT_SHAPE,
+                            init_cost=INIT_COST,
+                            steps=STEPS,
+                            lr=LR,
+                            num_classes=NUM_CLASSES,
+                            mini_batch=MINI_BATCH,
+                            upsample_size=UPSAMPLE_SIZE,
+                            attack_succ_threshold=ATTACK_SUCC_THRESHOLD,
+                            patience=PATIENCE,
+                            cost_multiplier=COST_MULTIPLIER,
+                            img_color=IMG_COLOR,
+                            batch_size=BATCH_SIZE,
+                            verbose=2,
+                            save_last=SAVE_LAST,
+                            early_stop=EARLY_STOP,
+                            early_stop_threshold=EARLY_STOP_THRESHOLD,
+                            early_stop_patience=EARLY_STOP_PATIENCE)
 
     log_mapping = {}
 
     # y_label list to analyze
-    y_target_list = range(NUM_CLASSES)
+    y_target_list = list(range(NUM_CLASSES))
     y_target_list.remove(Y_TARGET)
     y_target_list = [Y_TARGET] + y_target_list
     for y_target in y_target_list:
 
         print('processing label %d' % y_target)
 
-        _, _, logs = visualize_trigger_w_mask(
-            visualizer, test_generator, y_target=y_target,
-            save_pattern_flag=True)
+        _, _, logs = visualize_trigger_w_mask(visualizer,
+                                              test_generator,
+                                              y_target=y_target,
+                                              save_pattern_flag=True)
 
         log_mapping[y_target] = logs
 
